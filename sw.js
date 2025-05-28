@@ -3,13 +3,22 @@
 
 const CACHE_NAME = 'lab-8-starter';
 
+const RECIPE_URLs = [
+  'https://adarsh249.github.io/Lab8-Starter/recipes/1_50-thanksgiving-side-dishes.json',
+  'https://adarsh249.github.io/Lab8-Starter/recipes/2_roasting-turkey-breast-with-stuffing.json',
+  'https://adarsh249.github.io/Lab8-Starter/recipes/3_moms-cornbread-stuffing.json',
+  'https://adarsh249.github.io/Lab8-Starter/recipes/4_50-indulgent-thanksgiving-side-dishes-for-any-holiday-gathering.json',
+  'https://adarsh249.github.io/Lab8-Starter/recipes/5_healthy-thanksgiving-recipe-crockpot-turkey-breast.json',
+  'https://adarsh249.github.io/Lab8-Starter/recipes/6_one-pot-thanksgiving-dinner.json',
+];
+
 // Installs the service worker. Feed it some initial URLs to cache
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      // B6. TODO - Add all of the URLs from RECIPE_URLs here so that they are
+      // B6. Add all of the URLs from RECIPE_URLs here so that they are
       //            added to the cache when the ServiceWorker is installed
-      return cache.addAll([]);
+      return cache.addAll(RECIPE_URLs);
     })
   );
 });
@@ -20,7 +29,27 @@ self.addEventListener('activate', function (event) {
 });
 
 // Intercept fetch requests and cache them
+// Fetch event: Cache-first strategy, add new resources as they come in
 self.addEventListener('fetch', function (event) {
+  event.respondWith(
+    caches.open(CACHE_NAME).then(function (cache) {
+      return cache.match(event.request).then(function (cachedResponse) {
+        if (cachedResponse) {
+          return cachedResponse; // B8: Serve from cache
+        }
+        return fetch(event.request).then(function (networkResponse) {
+          // Dynamically cache the new response (only if it’s valid)
+          if (networkResponse.ok) {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(function (error) {
+          // Optional: Fallback logic here
+          console.error('Fetch failed; returning offline fallback:', error);
+        });
+      });
+    })
+  );
   // We added some known URLs to the cache above, but tracking down every
   // subsequent network request URL and adding it manually would be very taxing.
   // We will be adding all of the resources not specified in the intiial cache

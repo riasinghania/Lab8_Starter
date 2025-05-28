@@ -32,7 +32,22 @@ async function init() {
  * Detects if there's a service worker, then loads it and begins the process
  * of installing it and getting it running
  */
-function initializeServiceWorker() {
+function initializeServiceWorker(){
+  //B1. Check if 'serviceWorker' is supported in the current browser
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+        });
+    });
+  } else {
+    console.warn('Service Workers are not supported in this browser.');
+  }
+
   // EXPLORE - START (All explore numbers start with B)
   /*******************/
   // ServiceWorkers have many uses, the most common of which is to manage
@@ -44,7 +59,6 @@ function initializeServiceWorker() {
   /*******************/
   // We first must register our ServiceWorker here before any of the code in
   // sw.js is executed.
-  // B1. TODO - Check if 'serviceWorker' is supported in the current browser
   // B2. TODO - Listen for the 'load' event on the window object.
   // Steps B3-B6 will be *inside* the event listener's function created in B2
   // B3. TODO - Register './sw.js' as a service worker (The MDN article
@@ -65,18 +79,41 @@ function initializeServiceWorker() {
  * @returns {Array<Object>} An array of recipes found in localStorage
  */
 async function getRecipes() {
-  // EXPOSE - START (All expose numbers start with A)
-  // A1. TODO - Check local storage to see if there are any recipes.
-  //            If there are recipes, return them.
-  /**************************/
-  // The rest of this method will be concerned with requesting the recipes
-  // from the network
-  // A2. TODO - Create an empty array to hold the recipes that you will fetch
-  // A3. TODO - Return a new Promise. If you are unfamiliar with promises, MDN
-  //            has a great article on them. A promise takes one parameter - A
-  //            function (we call these callback functions). That function will
-  //            take two parameters - resolve, and reject. These are functions
-  //            you can call to either resolve the Promise or Reject it.
+    // A1. Check localStorage
+  const storedRecipes = localStorage.getItem('recipes');
+  if (storedRecipes) {
+    console.log('Loading recipes from localStorage...');
+    return JSON.parse(storedRecipes);
+  }
+
+  // A2. Empty array for fetched recipes
+  let recipes = [];
+
+  // A3. Return new Promise to fetch data
+  return new Promise((resolve, reject) => {
+    let fetchPromises = [];
+
+    for (const url of RECIPE_URLS) {
+      fetchPromises.push(
+        fetch(url)
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+          })
+          .then(data => recipes.push(data))
+          .catch(error => {
+            console.error('Error fetching recipe:', error);
+            reject(error);
+          })
+      );
+    }
+
+    Promise.all(fetchPromises).then(() => {
+      console.log('Storing to localStorage:', recipes);
+      localStorage.setItem('recipes', JSON.stringify(recipes));
+      resolve(recipes);
+    });
+  });
   /**************************/
   // A4-A11 will all be *inside* the callback function we passed to the Promise
   // we're returning
