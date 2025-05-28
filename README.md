@@ -2,7 +2,7 @@
 
 Ria Singhania A17331656
 
-(Github pages URL)[]
+[Github pages URL](https://riasinghania.github.io/Lab8_Starter/)
 
 How are graceful degradation and service workers related?
 
